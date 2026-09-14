@@ -5,8 +5,7 @@ ModernBASIC is a native, line-numbered BASIC implementation for modern
 tokenizer, program store, expression evaluator, and statement runtime.
 
 It is not an emulator, ROM wrapper, binary translator, or collection of
-selectable dialect modes. Ideas from Dartmouth, Microsoft, BBC, TI, Commodore,
-and Amiga BASIC are combined into one public language: **ModernBASIC**.
+selectable dialect modes. It provides one public language: **ModernBASIC**.
 
 ## What 0.8.2 contains
 
@@ -21,8 +20,8 @@ and Amiga BASIC are combined into one public language: **ModernBASIC**.
   lists, complex values, and bounded program storage.
 - `GOTO`, `GOSUB`, `RETURN`, `ON ... GOTO/GOSUB`, `FOR/NEXT`,
   `WHILE/WEND`, `DO/LOOP`, `REPEAT/UNTIL`, loop `EXIT`, single-line and block
-  `IF/THEN/ELSE`, `SELECT CASE`, `DATA/READ/RESTORE`, and Dartmouth `MAT`
-  work.
+  `IF/THEN/ELSE`, `SELECT CASE`, `DATA/READ/RESTORE`, and `MAT` matrix
+  operations.
 - Validated multi-line `SUB` and value-returning numeric/string `FUNCTION`
   procedures with default/explicit `BYVAL`, explicit `BYREF` scalar and array-
   element aliases, exact-type primitive and typed whole-record array aliases,
@@ -34,9 +33,9 @@ and Amiga BASIC are combined into one public language: **ModernBASIC**.
   instances; multi-level dotted access; typed I/O; exact-type whole-record and
   subrecord assignment; atomic `REDIM [PRESERVE]`; record-aware `ERASE`; and
   scoped procedure storage.
-- Sandboxed sequential file channels, including Microsoft `#` channel forms.
+- Sandboxed sequential file channels, including `#` channel forms.
 - Built-in vector and pixel graphics, a retained point-perspective XYZ world for
-  pixels, objects, and sprites, Artist-derived rendering, function graphing,
+  pixels, objects, and sprites, retained scene rendering, function graphing,
   buffered three-axis sprite velocity/acceleration, collision queries/traps,
   logical mouse input, nonblocking keys, natural-media brush strokes, common still
   imports, retained flipbooks, local/direct-HTTP media playback, still export,
@@ -50,13 +49,17 @@ and Amiga BASIC are combined into one public language: **ModernBASIC**.
   placement, optional eSpeak speech, and timed lyric-to-note singing.
 - A native Linux/X11 graphical shell plus a terminal `READY.` fallback.
 - No Cargo runtime dependencies: the SoundFont engine is vendored in `src/`.
-- A 321-file tracked BASIC catalog ported to the current 0.8 statement set.
+- A catalog of 365 BASIC source files, including examples, games, music, and tests.
 
-The supplied source package omits root-level optional SoundFont installations,
-build products, Python bytecode, and repository history. Instrument-specific
-banks tracked in `soundfont/` retain adjacent license and attribution files.
-The two optional spectrum-analysis utilities under `tools/` are development
-helpers and are not part of the BASIC runtime.
+For animation and game-loop guidance, including the optimized static-background
+`GET`/`PUT` pattern, see [GRAPHICS_PERFORMANCE.md](GRAPHICS_PERFORMANCE.md).
+
+Optional third-party SoundFont banks are installed separately.
+`install-soundfont.sh` obtains the MuseScore General bank and its license;
+any other bank must be installed with its own license and attribution. See
+[programs/SOUNDFONT_REQUIREMENTS.md](programs/SOUNDFONT_REQUIREMENTS.md).
+The Python audio-analysis and instrument-profile utilities under `tools/` are
+development helpers and are not part of the BASIC runtime.
 
 ## Build
 
@@ -79,6 +82,10 @@ sudo apt install cargo rustc libx11-dev
 ```
 
 The optimized executable is `target/release/modernbasic`.
+Use `./build-native.sh` instead when the binary is intended only for the
+computer that builds it; this enables native CPU instructions. See
+[docs/MODERN_BASIC_CONTRACT.md](docs/MODERN_BASIC_CONTRACT.md) for the boundary
+between compatible BASIC behavior and modern native implementation.
 
 ## Start
 
@@ -99,6 +106,15 @@ The optimized executable is `target/release/modernbasic`.
 ./run.sh help
 ```
 
+For an appliance that boots from a Linux kernel directly into the fullscreen
+ModernBASIC UI, without a desktop or login prompt on the display, see
+[docs/APPLIANCE_BOOT.md](docs/APPLIANCE_BOOT.md). Its installer only stages a
+separate image root and deliberately refuses to modify the running host root.
+For the current VM-first path, `./appliance/build-iso.sh` writes
+`target/modernbasic-live.iso`; `./appliance/vm-test.sh` boots an automated ISO
+and exercises hardware input plus managed windows, while
+`./appliance/iso-smoke-test.sh` boots the final interactive artifact.
+
 ## First program
 
 At the `READY.` prompt:
@@ -112,6 +128,52 @@ At the `READY.` prompt:
 LIST
 RUN
 ```
+
+## System hub and concurrent programs
+
+The graphical system hub and the BASIC language are separate environments.
+`HELP`, `EDIT SPRITE`, `EDIT FONT`, `TASKS`, `FOCUS`, `STOP`, `CLOSE`,
+`RESTART`, and `SHUTDOWN` are hub commands;
+they are not BASIC statements. Every program window has its own `READY.`
+environment, stored program, variables, input state, graphics screen, interrupt
+flag, synth score, speech queue, and PCM playback session.
+
+Opening another program does not suspend an existing one. Several games may
+run in separate windows while several other programs play music. A single
+program may also queue independent songs or parts on voices 1 through 16 before
+`SOUND RESUME`; separate program tasks add separate live audio streams which
+the host audio server mixes. `STOP` and `CLOSE` target only the selected task.
+Up to 32 program tasks may be open simultaneously; at that boundary the hub
+asks you to close a task before opening another.
+
+`./concurrency-test.sh` launches four complete sound-and-graphics programs in
+parallel and validates their isolated outputs. `./concurrency-test.sh --live`
+uses the real audio device so the four songs intentionally overlap.
+
+`EDIT SPRITE` opens the built-in eight-slot 24x21 image-sprite editor and
+`EDIT FONT` opens the 96-glyph 8x8 bitmap-font editor. The exported PPM assets
+load directly through `SPRITE IMAGE` and `FONT`, with no host conversion tool.
+
+Modern game framebuffers have named `SCREEN` presets from `HD` (1280x720)
+through `FULLHD`, `QHD`, `ULTRAWIDE`, and `UHD`/4K. The point-perspective mode
+keeps one bounded in-memory XYZ world for objects, pixels, lights, and sprites.
+`SPRITE IMAGE id,path$,(x,y,z),width,height[,key]` maps a load-time-decoded
+texture into that world; copies share resident pixels while their transforms,
+depth order, lighting, motion, and projected collision bounds remain
+independent.
+
+`programs/games/neon_depth_runner.bas` is the playable demonstration. It
+generates three portable sprite textures, retains and shares their decoded
+pixels, and runs an XYZ obstacle/collection game across selectable HD, Full HD,
+QHD, ultrawide, and UHD screens. Run it with:
+
+```sh
+./target/release/modernbasic shell programs/games/neon_depth_runner.bas
+```
+
+At the graphical `READY.` prompt, enter `RUN`, then press Space or Enter to
+start. A/D or Left/Right changes lanes, W/S or Up/Down changes height, Q/E
+changes depth, P pauses, and Escape quits.
 
 ## Command-line surface
 
@@ -129,6 +191,7 @@ graph-polar                        render R=f(T)
 graph-scatter                      render paired list data
 graph-histogram                    render a list histogram
 graph-data                         export sampled functions to CSV
+audio-profile                      report host audio and synthesis profile
 version                            print the build version
 help                               print full help
 ```
@@ -167,11 +230,31 @@ LIST      DELETE    RENUM     AUTO      EDIT      RUN       STEP      CONT
 LOAD      SAVE      MERGE     VERIFY    OLD       NEW       SCRATCH
 STATUS    LENGTH    DIR       FILES     CAT       CD        PWD
 MKDIR     RMDIR     KILL      NAME      RENAME    COPY      EVAL
-HELP      QUIT      EXIT      BYE
+HELP      MANUAL    QUIT      EXIT      BYE
 ```
 
 Statements may also be executed directly without a line number. Direct-mode
 variables and arrays remain available until the program state is cleared.
+
+## User guide and programmer manual
+
+The [Language Reference](docs/LANGUAGE_REFERENCE.md) is the combined user and
+programmer manual, covering the program model, expressions, statements,
+graphics, audio, and resource limits. It is also embedded in the executable.
+For focused guides, see:
+
+- [Program editor and user files](docs/EDITOR_AND_FILES.md): navigation, editing,
+  loading, and saving programs.
+- [Audio reference](docs/AUDIO_REFERENCE.md): sound and music syntax.
+- [Painting guide](BASIC_PAINTING_GUIDE.md): procedural graphics and image creation.
+- [Graphics performance](GRAPHICS_PERFORMANCE.md): animation and game loops.
+
+Press **F1**, or enter `HELP`/`MANUAL` in a graphical window, to open the full
+user manual embedded in the executable. Navigate with Up/Down, Page Up/Page
+Down, Home/End, or the mouse wheel. Press `/` to search, **F3** for the next
+match, and **Escape** or **F1** to close it. Program-window F1 opens help only at
+`READY.`, leaving F1 available to running BASIC programs. In `repl`, `HELP`
+prints quick help and `MANUAL` or `HELP MANUAL` prints the complete manual.
 
 ## Graphical line editing
 
@@ -182,7 +265,9 @@ Edit with Left, Right, Home, End, Backspace, and Delete, then press **Enter** to
 replace the line. Ordinary **Up** and **Down** always browse command and
 numbered-statement history. Press **Escape** to leave list-edit mode; only
 **Ctrl+Escape** requests BREAK and returns a running graphics/demo program to
-the text screen. Ctrl+Left and Ctrl+Right safely move the character cursor.
+the text screen without closing its window or clearing its BASIC RAM. Clicking
+that program window's X terminates the task, closes the window, and releases its
+RAM. Ctrl+Left and Ctrl+Right safely move the character cursor.
 Page Up and Page Down scroll long listings.
 
 The default BASIC user directory is the packaged `programs` root. `PWD`, `DIR`,
@@ -201,13 +286,19 @@ data. Packaged runs place `SAVEIMAGE`, `SCREENSHOT`, `RENDER`, `WAVEFILE`,
 `VIDEO`, and explicit graph-display results in the root-level `output/` folder;
 `--output-root` selects another sandboxed destination.
 
+`LPRINT` appends to the bounded `modernbasic_print.spool` file in that same
+output sandbox. It never auto-selects a host printer or writes a shared `/tmp`
+file. Embedding hosts may supply an explicit spool path; symbolic-link targets
+are rejected and the configured per-file byte limit still applies.
+
 Loading a stored program prepares every declared static asset before the next
 `READY.` prompt. SoundFonts are parsed, images are decoded, and local or
 HTTP(S) media is retained as immutable bytes. Relative asset paths are anchored
 to the loaded `.bas` file's directory and do not move when BASIC later executes
-`CD`. A missing, invalid, or nonliteral declared asset rejects the load without
-replacing the previous program; `RUN` uses the retained objects and does not
-reopen their source files. Files created during the run, such as `SAVEIMAGE`
+`CD`; the reserved `soundfont/` prefix instead selects the configured backend
+bank root. A missing, invalid, or nonliteral declared asset rejects the load
+without replacing the previous program; `RUN` uses the retained objects and
+does not reopen their source files. Files created during the run, such as `SAVEIMAGE`
 and `WAVEFILE` outputs, enter the same in-memory asset set when produced.
 
 For a quick non-audio language check, run:
@@ -227,6 +318,14 @@ REPL, or batch run:
 ```sh
 ./run.sh shell --network
 ./run.sh run --network --output-root output program.bas
+```
+
+Native compilation is also disabled by default because it invokes Cargo outside
+the interpreter's statement and file-size budgets. Trusted sessions may grant
+it explicitly:
+
+```sh
+./run.sh repl --native-compile
 ```
 
 The canonical programming interface is small and non-duplicated:
@@ -285,22 +384,16 @@ statement and no imported leaf image--then creates 120 complete 960x540 pages.
 Its numbered program builds a depth-scaled, wind-bent serrated path and paints
 that mask with two deterministic multi-octave textures, a gradient, clipped
 surface sheen, mottling, curved veins, soft brush shadow, and raster sharpening.
-The plain neutral canvas intentionally contains no decorative background. The
-verified artifacts in this workspace are
-`output/stickman_flipbook/stickman-flipbook.gif`,
-`output/stickman_flipbook/stickman-flipbook.mp4`,
-`output/leaves_flipbook/one-leaf-still.png`,
-`output/leaves_flipbook/one-leaf-in-wind.gif`, and
-`output/leaves_flipbook/one-leaf-in-wind.mp4`. The third constructs a white
+The plain neutral canvas intentionally contains no decorative background.
+These programs export their stills and animations beneath the configured
+output root (normally `output/`). The third constructs a white
 feather without an imported image: translucent asymmetric vanes, a curved
 rachis, separated diagonal barbs, frayed gaps, downy base wisps, surface sheen,
 shadow, and sharpening all follow a strongly wind-bent centerline. One full
 end-over-end tumble and two edge-on axial flips reverse the face shading while
-position and Z-derived scale animate 120 complete pages. Its verified artifacts
-are
-`output/feather_flipbook/one-feather-still.png`,
-`output/feather_flipbook/one-feather-in-wind.gif`, and
-`output/feather_flipbook/one-feather-in-wind.mp4`.
+position and Z-derived scale animate 120 complete pages. It exports
+`one-feather-still.png`, `one-feather-in-wind.gif`, and
+`one-feather-in-wind.mp4` beneath the output root.
 
 The renderer also preserves alpha in imported PNG/WebP/TIFF cutouts and opaque
 PNG/JPEG/BMP frames, uses premultiplied bilinear resampling, and exports
@@ -349,6 +442,10 @@ cargo run --release -- run programs/examples/soundfont.bas
 cargo run --release -- run programs/music/rock/steel_thunder.bas
 ```
 
+The installers verify pinned SHA-256 digests before parsing or extracting any
+downloaded file. An upstream asset change is rejected until its source and
+digest are reviewed and deliberately updated.
+
 The general installer obtains the approximately 206 MiB lossless MuseScore General SF2
 and its MIT license from MuseScore’s official mirror. The source archive does
 not redistribute the bank. The rock installer adds the CC0 FreePats FSBS
@@ -376,10 +473,11 @@ modulation, sustain, pitch bend, reverb, chorus, volume, and stereo positioning.
 `DSP voice,drive,tone,presence,compression,gate` adds isolated per-voice
 amplifier/cabinet processing and articulation control; all five settings are
 normalized from 0 through 1.
-Native voices default to three independently tuned `OSCILLATOR` slots, and each
+Native voices use the host-scanned `AUTO` profile by default, and each
 program can select 1 through 16 voices with 1 through 8 oscillators per voice
 using `SYNTHPROFILE`, `VOICES`, and `OSCILLATORS`. Named profiles include an
-opt-in host-scanned `AUTO` mode; exact program settings override it. Each voice
+explicit deterministic `STANDARD` mode; exact program settings override the
+host selection. Each voice
 also has `FILTER`, `FILTERADSR`, targeted `LFO`, `GLIDE`, and `DRIVE` controls. `MIXER voice,synth-level,midi-level` selects computer synthesis,
 MIDI/SoundFont instruments, or both as an explicitly balanced layer for each
 `PLAY` voice. `SOUND` remains the arbitrary-frequency native tone statement.
@@ -448,20 +546,27 @@ See [docs/AUDIO_REFERENCE.md](docs/AUDIO_REFERENCE.md) for exact syntax.
 ```sh
 ./verify.sh
 ./smoke-test.sh
+./program-test.sh
 ```
 
-The release verifier checks formatting, every target, all tests, Clippy with
-warnings denied, rustdoc, and the optimized build. The smoke suite also checks
-WAV generation and rejects duplicate/out-of-order lines or removed legacy
-statements in the 321-file tracked catalog. See
+The release verifier checks source integrity, formatting, every target, all tests,
+Clippy with warnings denied, rustdoc, the optimized build, the companion
+`ruststrument` project, smoke and concurrency suites, the complete program-catalog
+probe, and download integrity. The program test loads and canonically lists all
+365 BASIC sources, then gives each successfully listed source a bounded headless
+run. Its TSV report distinguishes completed programs, expected errors,
+interactive input, external assets, step limits, timeouts, and failures. Set
+`MODERNBASIC_PROGRAM_TIMEOUT_SECONDS` or `MODERNBASIC_PROGRAM_STEP_LIMIT` to
+raise the guards. The smoke suite also checks WAV generation and rejects
+duplicate/out-of-order lines or removed legacy statements in the catalog. See
 [docs/VERIFICATION.md](docs/VERIFICATION.md) for the precise status of this
 package.
 
 ## Important documentation
 
 - [docs/LANGUAGE_REFERENCE.md](docs/LANGUAGE_REFERENCE.md)
+- [docs/MODERN_BASIC_CONTRACT.md](docs/MODERN_BASIC_CONTRACT.md)
 - [docs/AUDIO_REFERENCE.md](docs/AUDIO_REFERENCE.md)
-- [docs/AMIGA_500_CREATIVE_PROFILE.md](docs/AMIGA_500_CREATIVE_PROFILE.md)
 - [docs/MIGRATION_0.7_TO_0.8.md](docs/MIGRATION_0.7_TO_0.8.md)
 - [docs/EDITOR_AND_FILES.md](docs/EDITOR_AND_FILES.md)
 - [docs/STATEMENT_CONFORMANCE.md](docs/STATEMENT_CONFORMANCE.md)
