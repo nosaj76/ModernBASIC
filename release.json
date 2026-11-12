@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "revision": "1",
+  "profiles": {
+    "workstation": {
+      "architecture": "amd64",
+      "rust_target": "x86_64-unknown-linux-gnu",
+      "elf_machine": "Advanced Micro Devices X86-64",
+      "image": true
+    },
+    "general": {
+      "architecture": "arm64",
+      "rust_target": "aarch64-unknown-linux-gnu",
+      "elf_machine": "AArch64",
+      "image": true
+    },
+    "lightweight": {
+      "architecture": "riscv64",
+      "rust_target": "riscv64gc-unknown-linux-gnu",
+      "elf_machine": "RISC-V",
+      "image": true
+    },
+    "pi5": {
+      "architecture": "arm64",
+      "rust_target": "aarch64-unknown-linux-gnu",
+      "elf_machine": "AArch64",
+      "image": false
+    }
+  },
+  "program_catalog": "embedded-only",
+  "package_epoch": 1
+}

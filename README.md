@@ -1,5 +1,17 @@
 # ModernBASIC 0.8.2
 
+This directory is the **protected source project and historical record** of the
+ModernBASIC OS. Preserve its source, evolution, documents and assets. See
+[AGENTS.md](AGENTS.md) for the owner’s preservation instructions.
+Create a verified source/history backup outside this project with
+`python3 tools/backup-source.py /path/on/backup/drive`. This preserves documents
+and retained history, and explicitly excludes the running VM disk and build caches.
+
+The current consolidated distro baseline is **revision 1**. The runtime remains
+ModernBASIC 0.8.2. Build, migration and cleanup evidence is kept with the single
+current release under `releases/revision-1/`; older dated validation notes are
+historical evidence, not additional supported release branches.
+
 ModernBASIC is a native, line-numbered BASIC implementation for modern
 64-bit computers. It is written in Rust and executes BASIC through its own
 tokenizer, program store, expression evaluator, and statement runtime.
@@ -15,7 +27,7 @@ selectable dialect modes. It provides one public language: **ModernBASIC**.
 - Ctrl+Up/Ctrl+Down graphical list-edit navigation for changing stored lines
   in place; F2 remains the explicit LIST/edit shortcut.
 - Ctrl+U toggles uppercase and mixed-case keyboard input, and completed
-  `RUN`/`CONT` execution prints the classic `READY.` return prompt.
+  `RUN`/`CONT` execution prints the `READY.` return prompt.
 - Checked 64-bit integers, finite binary64 reals, UTF-8 strings, arrays,
   lists, complex values, and bounded program storage.
 - `GOTO`, `GOSUB`, `RETURN`, `ON ... GOTO/GOSUB`, `FOR/NEXT`,
@@ -48,18 +60,54 @@ selectable dialect modes. It provides one public language: **ModernBASIC**.
 - Sixteen-voice native synthesis, SoundFont instruments, WAV export, stereo
   placement, optional eSpeak speech, and timed lyric-to-note singing.
 - A native Linux/X11 graphical shell plus a terminal `READY.` fallback.
-- No Cargo runtime dependencies: the SoundFont engine is vendored in `src/`.
-- A catalog of 365 BASIC source files, including examples, games, music, and tests.
+- Offline builds: the SoundFont engine and pinned exact-arithmetic Rust dependencies are vendored in `src/`; symbolic math needs no external runtime.
+- A development catalog of 374 BASIC source files, including examples, games,
+  music, and tests; catalog programs are not a language-completeness certificate.
 
 For animation and game-loop guidance, including the optimized static-background
 `GET`/`PUT` pattern, see [GRAPHICS_PERFORMANCE.md](GRAPHICS_PERFORMANCE.md).
 
-Optional third-party SoundFont banks are installed separately.
+Native synthesis needs no SoundFonts. The revision 8 workstation image includes
+the banks required by the bundled sampled-instrument programs; source-checkout
+installers can obtain the publicly downloadable banks.
 `install-soundfont.sh` obtains the MuseScore General bank and its license;
 any other bank must be installed with its own license and attribution. See
 [programs/SOUNDFONT_REQUIREMENTS.md](programs/SOUNDFONT_REQUIREMENTS.md).
 The Python audio-analysis and instrument-profile utilities under `tools/` are
 development helpers and are not part of the BASIC runtime.
+
+## Debian programming environment
+
+Debian 13 deployment profiles cover the x86 workstation, lightweight RISC-V,
+general-use ARM64, and Raspberry Pi 5, booting into the ModernBASIC hub. Debian
+provides the Linux kernel and hardware support; the deployment installs its runtime components and compiler locally.
+See [Debian deployment profiles](docs/DEBIAN_DEPLOYMENT.md) for the package builder,
+installation, and pending hardware validation. An optional [BASIC browser](docs/BROWSER.md) uses a Linux Chromium backend;
+commercial DRM service and platform acceptance remain separate.
+
+A [desktop application written in BASIC](applications/desktop/desktop.bas)
+provides independent Files, Text Editor, Writer, Sheet, Slides and browser windows. Build it
+with `./tools/build-desktop.sh`, then use `./tools/run-desktop.sh` to launch its
+standalone ELF. See [desktop usage and limits](docs/EDITOR_AND_FILES.md#basic-desktop-application)
+and the [compiled GUI acceptance check](docs/RELEASE_READINESS.md). It remains
+an optional environment: users choose the desktop binary or direct BASIC with
+no desktop. Files stays inside the user's BASIC area, with a `Programs` folder
+and a Browser downloads shortcut. A live taskbar switches between this desktop's
+application and program windows. Direct bundled binary launches default to
+`~/ModernBASIC`, with `--file-root` available for an explicitly chosen workspace. The current boot image still starts direct BASIC; offering both
+choices in installation images remains a packaging and acceptance requirement.
+
+The [master-source workflow](docs/MASTER_SOURCE.md) freezes one complete source
+snapshot for every profile. `release.json` selects the common release revision;
+platform builds must not use separately edited runtime trees.
+
+## Reliability and release checks
+
+The [core language stability contract](docs/LANGUAGE_STABILITY.md) defines the
+behavior protected across releases. [Release readiness](docs/RELEASE_READINESS.md)
+describes per-change CI, generated interaction tests, exact-artifact acceptance,
+long-session soaks, audio-stream checks, and the hardware evidence still needed.
+Run `./verify.sh` for the complete local software gate.
 
 ## Build
 
@@ -90,8 +138,13 @@ between compatible BASIC behavior and modern native implementation.
 ## Start
 
 ```sh
-# Native graphical READY environment; terminal fallback if X11 is unavailable
+# Choose Desktop or No desktop interactively:
 ./run.sh
+
+# Or choose explicitly (also suitable for launch shortcuts/scripts):
+./run.sh --desktop /path/to/workspace
+# Direct BASIC graphical READY environment; terminal fallback without X11:
+./run.sh --no-desktop
 
 # Explicit terminal environment
 ./run.sh repl
@@ -110,10 +163,16 @@ For an appliance that boots from a Linux kernel directly into the fullscreen
 ModernBASIC UI, without a desktop or login prompt on the display, see
 [docs/APPLIANCE_BOOT.md](docs/APPLIANCE_BOOT.md). Its installer only stages a
 separate image root and deliberately refuses to modify the running host root.
-For the current VM-first path, `./appliance/build-iso.sh` writes
-`target/modernbasic-live.iso`; `./appliance/vm-test.sh` boots an automated ISO
-and exercises hardware input plus managed windows, while
-`./appliance/iso-smoke-test.sh` boots the final interactive artifact.
+For a self-contained Debian kernel/BASIC ISO, use `./appliance/build-iso.sh`
+inside Debian 13 with the matching BASIC package. See
+[Debian live images](docs/DEBIAN_IMAGES.md) for build commands and VM acceptance.
+The older host-derived VM builder is `./appliance/build-development-iso.sh`.
+
+## Web browser
+
+Build with `./tools/build-browser.sh`, then run `./tools/run-browser.sh` for
+the BASIC-drawn browser: embedded pages, tabs, bookmarks, history, downloads and
+explicit upload prompts. Browser data is kept in the selected workspace. See [browser setup and limits](docs/BROWSER.md).
 
 ## First program
 
@@ -134,15 +193,34 @@ RUN
 The graphical system hub and the BASIC language are separate environments.
 `HELP`, `EDIT SPRITE`, `EDIT FONT`, `TASKS`, `FOCUS`, `STOP`, `CLOSE`,
 `RESTART`, and `SHUTDOWN` are hub commands;
-they are not BASIC statements. Every program window has its own `READY.`
+they are not BASIC statements. In the Debian appliance, `SHUTDOWN` followed by
+`Y` powers off the operating system and its VM or physical machine. `EXIT` at
+an application's `READY.` prompt closes only that window. Every program window has its own `READY.`
 environment, stored program, variables, input state, graphics screen, interrupt
 flag, synth score, speech queue, and PCM playback session.
+
+To change the default colors, enter `SCREEN COLOR = navy` and
+`TEXT COLOR = white` in the hub. Enter `COLORS` to list 32 supported names.
+Names ignore case, and `#rrggbb` codes remain available. Changes take effect
+immediately and save automatically in `modernbasic.cfg` under the configured
+file root. Startup options `--screen-color` and `--text-color` accept names too.
+
+Text-only programs allocate no graphics framebuffer or renderer worker. Graphics
+and audio runtime state initialize on use, without library imports. Assets load
+only when their operations execute. Closing a window releases its task resources.
+See [Capability runtime](docs/CAPABILITY_RUNTIME.md) for lifecycle details and the
+remaining work on optional shared libraries and browser support.
 
 Opening another program does not suspend an existing one. Several games may
 run in separate windows while several other programs play music. A single
 program may also queue independent songs or parts on voices 1 through 16 before
 `SOUND RESUME`; separate program tasks add separate live audio streams which
 the host audio server mixes. `STOP` and `CLOSE` target only the selected task.
+Native `PLAY` and `SOUND` queue note events rather than synthesizing whole
+tracks on the BASIC execution thread. Playback synthesizes bounded PCM blocks
+directly into the audio stream, retaining oscillator and filter state between
+blocks. `SOUND RESUME`, `END`, and `STOP` start the queued arrangement without
+first producing a WAV file. `WAVEFILE` remains an explicit offline export.
 Up to 32 program tasks may be open simultaneously; at that boundary the hub
 asks you to close a task before opening another.
 
@@ -151,13 +229,35 @@ parallel and validates their isolated outputs. `./concurrency-test.sh --live`
 uses the real audio device so the four songs intentionally overlap.
 
 `EDIT SPRITE` opens the built-in eight-slot 24x21 image-sprite editor and
-`EDIT FONT` opens the 96-glyph 8x8 bitmap-font editor. The exported PPM assets
-load directly through `SPRITE IMAGE` and `FONT`, with no host conversion tool.
+`EDIT FONT` opens the 96-glyph 8x8 bitmap-font editor. Both support keyboard
+editing, left-drag painting, right-drag erasing, and `U` for one-level undo/redo.
+`S` saves and `L` reopens a PPM through a filename dialog; Delete clears the
+path, Enter continues, and Escape cancels. Paths are relative to the BASIC file
+root and their folders must exist. Saves ask before replacing a file and write
+through a temporary file; failed operations keep your work in memory. Temporary
+files are removed after a completed or handled failed save; no backup is made.
+Quit and normal window-close requests confirm unsaved work. The hub's explicit
+`CLOSE` command and shutting down the hub still terminate tasks directly.
+
+The font editor loads 128x48 monochrome P6 sheets (ASCII 32-127, 16x6 cells).
+It does not edit TrueType fonts. Desktop and Office applications use system fonts.
+The sprite editor loads 24x21 P6 images using its displayed five-color palette,
+including black transparency. Save each sprite slot separately; `O` copies to
+the next slot after confirmation. Unsupported dimensions, colors, and malformed
+files are rejected without changing the current asset. Exports load directly
+through `SPRITE IMAGE` and `FONT`, with no host conversion tool.
+
+Editor regression checks (the GUI check requires Xvfb, xdotool, and Pillow):
+
+```bash
+./tools/low-memory-build.sh python3 tools/test-graphics-editor-workflows.py
+./tools/low-memory-build.sh python3 tools/test-graphics-editors.py
+```
 
 Modern game framebuffers have named `SCREEN` presets from `HD` (1280x720)
 through `FULLHD`, `QHD`, `ULTRAWIDE`, and `UHD`/4K. The point-perspective mode
 keeps one bounded in-memory XYZ world for objects, pixels, lights, and sprites.
-`SPRITE IMAGE id,path$,(x,y,z),width,height[,key]` maps a load-time-decoded
+`SPRITE IMAGE id,path$,(x,y,z),width,height[,key]` maps a first-use-decoded
 texture into that world; copies share resident pixels while their transforms,
 depth order, lighting, motion, and projected collision bounds remain
 independent.
@@ -291,15 +391,14 @@ output sandbox. It never auto-selects a host printer or writes a shared `/tmp`
 file. Embedding hosts may supply an explicit spool path; symbolic-link targets
 are rejected and the configured per-file byte limit still applies.
 
-Loading a stored program prepares every declared static asset before the next
-`READY.` prompt. SoundFonts are parsed, images are decoded, and local or
-HTTP(S) media is retained as immutable bytes. Relative asset paths are anchored
-to the loaded `.bas` file's directory and do not move when BASIC later executes
-`CD`; the reserved `soundfont/` prefix instead selects the configured backend
-bank root. A missing, invalid, or nonliteral declared asset rejects the load
-without replacing the previous program; `RUN` uses the retained objects and
-does not reopen their source files. Files created during the run, such as `SAVEIMAGE`
-and `WAVEFILE` outputs, enter the same in-memory asset set when produced.
+Loading a stored program validates its execution plan before `READY.`. Images,
+SoundFonts, and local or HTTP(S) media load only when their operations execute;
+unreached operations do not open files or activate their capabilities. Asset
+paths may be evaluated expressions. Relative paths remain anchored to the loaded
+program's directory independently of later `CD` commands. Successful first use
+retains assets for repeated runs; a missing or invalid asset fails at the operation
+that needs it. Program replacement or window closure releases the retained assets.
+Generated images and WAV files enter the in-memory asset set when produced.
 
 For a quick non-audio language check, run:
 
@@ -307,7 +406,7 @@ For a quick non-audio language check, run:
 ./run.sh run programs/examples/basic_conformance.bas
 ```
 
-It exercises classic control flow, DATA/READ, arrays, virtual memory, virtual
+It exercises control flow, DATA/READ, arrays, virtual memory, virtual
 ports, and native WAIT behavior and prints `BASIC CONFORMANCE OK` on success.
 
 ## Networking and web access
@@ -348,8 +447,10 @@ binary data beneath the output sandbox. Use
 `--max-network-bytes` to change the default 16 MiB response limit.
 
 A YouTube or Netflix address is normally a web page, not a direct video file.
-Use `WEB OPEN` so the installed browser handles JavaScript, login state, and
-licensed/DRM playback. `PLAY AUDIO` and `PLAY VIDEO` accept direct HTTP(S)
+Run `./tools/run-browser.sh` for the BASIC browser with its Linux Chromium
+backend, or use `WEB OPEN` to open the system browser. Both delegate JavaScript,
+login state and licensed/DRM playback to the installed engine; see
+[protected-video requirements and validation](docs/BROWSER.md). `PLAY AUDIO` and `PLAY VIDEO` accept direct HTTP(S)
 media streams and never bypass site protection.
 
 ## Flipbook movie production
@@ -368,7 +469,7 @@ Classic `PLAY` note strings remain unchanged. Explicit `PLAY AUDIO source$`,
 `PLAY VIDEO source$`, and `PLAY FLIPBOOK ...` select sandboxed local media,
 direct HTTP(S) streams, or retained still sequences without introducing another
 note or graphics dialect. They do not bypass DRM; full web sites are opened
-through `WEB OPEN` and the installed browser.
+through the optional `WEB VIEW` browser or `WEB OPEN` and the system browser.
 
 Three complete BASIC-produced examples are included:
 
@@ -493,8 +594,10 @@ vibrato, plus synthesized rock drums
 without a SoundFont. It plays live and contains no audio-file export path.
 
 SoundFonts are treated as backend instrument hardware in the dedicated
-root-level `soundfont/` directory, independent of a BASIC program's current
-directory. `--soundfont-root` selects a separate shared backend for multi-user
+root-level `soundfonts/` directory in a source checkout, or
+`/var/lib/modernbasic/soundfonts` in the Debian appliance, independent of a BASIC
+program's current directory. Bare bank names and both `soundfont/` and
+`soundfonts/` prefixes resolve through that shared folder. `--soundfont-root` selects a separate shared backend for multi-user
 installations. Without `SOUNDFONT`, `INSTRUMENT` searches that backend and common
 Linux locations for MuseScore General, FluidR3 GM, and TimGM6mb. On
 Debian or Ubuntu, `sudo apt install fluid-soundfont-gm` provides a free
@@ -541,7 +644,24 @@ test, or `./audio-test.sh --no-play` on a headless machine.
 
 See [docs/AUDIO_REFERENCE.md](docs/AUDIO_REFERENCE.md) for exact syntax.
 
+## Builds on memory-constrained hosts
+
+On Linux with a systemd user session, run `./tools/low-memory-build.sh` to build
+or `./tools/low-memory-build.sh ./verify.sh` to verify. The runner limits the
+command and its children to 4 GiB RAM, 1 GiB swap, and one CPU, with one Cargo
+job and one test thread. It prevents overlapping runner invocations and fails
+if systemd cannot apply the limits. Ordinary Cargo builds default to one job.
+
+Artifacts and scratch files go under disk-backed `target/`. A symlink to a disk
+with more free space is supported. Check available space before ISO builds.
+Compilation still needs working memory even when its files are on disk.
+
 ## Verification
+
+The sparse numerical reference gate requires NumPy and SciPy in the Python
+environment used by `verify.sh`. Debian/Ubuntu provide these as `python3-numpy`
+and `python3-scipy`; CI installs both. They are verification dependencies only,
+not dependencies of BASIC sparse calculations.
 
 ```sh
 ./verify.sh
@@ -553,7 +673,7 @@ The release verifier checks source integrity, formatting, every target, all test
 Clippy with warnings denied, rustdoc, the optimized build, the companion
 `ruststrument` project, smoke and concurrency suites, the complete program-catalog
 probe, and download integrity. The program test loads and canonically lists all
-365 BASIC sources, then gives each successfully listed source a bounded headless
+bundled BASIC sources, then gives each successfully listed source a bounded headless
 run. Its TSV report distinguishes completed programs, expected errors,
 interactive input, external assets, step limits, timeouts, and failures. Set
 `MODERNBASIC_PROGRAM_TIMEOUT_SECONDS` or `MODERNBASIC_PROGRAM_STEP_LIMIT` to
@@ -562,8 +682,16 @@ duplicate/out-of-order lines or removed legacy statements in the catalog. See
 [docs/VERIFICATION.md](docs/VERIFICATION.md) for the precise status of this
 package.
 
+For program-window status and error-copying checks, run
+`./tools/low-memory-build.sh python3 tools/test-program-status.py`. This uses a
+private Xvfb display and requires `Xvfb`, `xdotool`, and `xclip`. It checks that
+printed questions and words such as `BREAKFAST` leave the program ready, while
+actual errors, `STOP`, and `STEP` produce the appropriate status. Use `--binary`
+to select an existing build without rebuilding it.
+
 ## Important documentation
 
+- [docs/SECURITY_MODEL.md](docs/SECURITY_MODEL.md)
 - [docs/LANGUAGE_REFERENCE.md](docs/LANGUAGE_REFERENCE.md)
 - [docs/MODERN_BASIC_CONTRACT.md](docs/MODERN_BASIC_CONTRACT.md)
 - [docs/AUDIO_REFERENCE.md](docs/AUDIO_REFERENCE.md)
@@ -575,3 +703,82 @@ package.
 - [AUDIT_REPORT_0.8.2.md](AUDIT_REPORT_0.8.2.md)
 - [AUDIT_REPORT_0.8.1.md](AUDIT_REPORT_0.8.1.md) (baseline provenance)
 - [LICENSE_STATUS.md](LICENSE_STATUS.md)
+
+The Debian appliance uses `/var/lib/modernbasic/soundfonts` as its shared bank
+folder. `SOUNDFONT "Bank.sf2"` resolves there from any program directory.
+The existing `soundfont/` and `soundfonts/` prefixes select the same folder.
+
+### Bash administration window
+
+At the system hub, `BASH` opens or focuses a separate managed Bash terminal.
+It defaults to a 640×480 client area, reduced to fit smaller displays, and can
+be resized using its window border.
+`F12` moves focus between BASIC and Bash without discarding either session;
+`exit` in Bash or its window close button ends that terminal session. BASIC
+program windows continue running while you administer the system.
+
+Bash appears in the Program Manager and `TASKS` as `BASH`, with `STARTING` or
+`OPEN` status. Double-click its row (or select it and press Enter) to focus the
+existing terminal; Delete closes it. `FOCUS BASH` and `CLOSE BASH` do the same.
+The entry disappears when Bash exits. Closing it also ends its background jobs.
+Use Ctrl+C inside Bash to interrupt a shell command.
+
+Program, Bash, and Settings windows can be moved partly off-screen, with at
+least half of each frame dimension kept visible. New windows open on-screen.
+Alt+drag anywhere in a window moves it even if its title bar is off-screen.
+
+In the Debian appliance, Bash is a root administration console launched on demand
+by `modernbasic-admin-bash.service`. The local console operator has administrator
+access without a password prompt. BASIC itself remains unprivileged. This
+administrative mode is for a trusted local appliance console, not a multi-user
+security boundary. The BASH command is appliance-only: a host development launch reports that
+the Debian ISO must be booted. It never opens the host's Bash terminal.
+
+### OS settings and first-run setup
+
+Enter `SETTINGS` for audio output selection, volume, mute, a left/right test sound,
+display settings, graphical Wi-Fi and Bluetooth setup, keyboard layout/time-zone
+selection, removable-drive mount/unmount/eject, and hardware/update status. Wi-Fi supports
+visible/hidden networks, saved connections, radio controls and cancellation recovery.
+See [Wi-Fi setup](docs/WIFI_SETUP.md) and [Bluetooth setup](docs/BLUETOOTH_SETUP.md).
+See [keyboard and time-zone setup](docs/REGIONAL_SETUP.md) for layout testing,
+automatic revert and persistence. Bluetooth includes pairing-code confirmation, connection and removal controls.
+See [removable drives](docs/REMOVABLE_DRIVES.md) for device identity, busy-device
+errors and safe removal. Power and update pages include instructions for the existing F12 administration tools. Settings run as
+the BASIC user; Wi-Fi, Bluetooth, regional settings and storage use separate confined helper accounts.
+These features add no direct backend permission to BASIC programs. A default-output change
+affects new playback; restart an already playing demo to use the new output.
+
+`SETUP` opens the welcome checklist. It opens automatically on appliance startup
+until you select Finish. Canceling leaves it available next time; host development
+launches never open it automatically. Completion is saved under
+`$XDG_CONFIG_HOME/modernbasic/setup-v1.complete` (or `~/.config/modernbasic/`).
+The dialogs use Python 3 and Zenity already included in the Debian distribution.
+
+Enter `DISPLAY`, `RESOLUTION`, or `SETTINGS DISPLAY` to open the
+Display Settings page directly. It lists the active screen's reported modes and marks
+the current and preferred resolutions. Select a mode and choose Apply, then
+Keep if the picture works. Revert, closing the page, or waiting 15 seconds
+restores an unconfirmed change. Resolution changes affect the desktop; BASIC
+program windows retain their own sizes and fit within the screen.
+
+Confirmed appliance settings are stored in
+`/var/lib/modernbasic/config/display.conf` and restored at UI startup when the
+mode is available. The current live ISO has no persistent overlay, so settings
+are lost when the VM powers off.
+
+
+The central download and bug-report website is in [services/portal](services/portal/README.md).
+It provides separate Linux kernel and Modern BASIC developer queues, OS integration
+and unsure categories, private triage history, and checksum-validated platform
+downloads. The initial manifest has no published images while OS corrections
+and new-image acceptance are pending. See [release readiness](docs/RELEASE_READINESS.md).
+
+Current deployment work is tracked in [TASKS.md](TASKS.md). The new offline
+ModernBASIC package update and rollback workflow is described in
+[Updates and recovery](docs/UPDATES_AND_RECOVERY.md); it is distinct from Debian
+kernel/security updates and is staged separately from the runtime package.
+
+Start with the offline [programming guide](docs/PROGRAMMING_GUIDE.md), also built
+into F1/MANUAL. Four `programs/tutorials` lessons cover loops, procedures, files
+and debugging; all deployment profiles share these sources and tools.

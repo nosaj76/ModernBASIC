@@ -1,0 +1,33 @@
+[Unit]
+Description=ModernBASIC release and issue portal
+After=network.target
+
+[Service]
+Type=simple
+User=modernbasic-portal
+Group=modernbasic-portal
+WorkingDirectory=/opt/modernbasic-portal
+EnvironmentFile=/etc/modernbasic-portal/portal.env
+ExecStart=/usr/bin/python3 /opt/modernbasic-portal/app.py --storage /var/lib/modernbasic-portal --releases /srv/modernbasic/releases --manifest /etc/modernbasic-portal/releases.json --secret-file /etc/modernbasic-portal/developer.key --origin ${PORTAL_ORIGIN} --port 8081
+StateDirectory=modernbasic-portal
+StateDirectoryMode=0700
+UMask=0077
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=20
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+MemoryMax=512M
+TasksMax=128
+
+[Install]
+WantedBy=multi-user.target
